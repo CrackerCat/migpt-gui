@@ -1,0 +1,18 @@
+### 运行 MiGPT
+POST http://localhost:34892/api/run
+Content-Type: application/json
+
+{
+  "env": {
+    "model": "gpt2",
+    "tokenizer": "gpt2",
+    "max_length": 100
+  },
+  "config": {
+    "text": "I love you 2",
+    "num_return_sequences": 1
+  }
+}
+
+### 查看当前状态
+GET http://localhost:34892/api/status

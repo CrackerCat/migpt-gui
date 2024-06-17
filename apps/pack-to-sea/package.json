@@ -1,0 +1,16 @@
+{
+  "name": "pack-to-sea",
+  "version": "1.0.0",
+  "scripts": {
+    "clean": "rm -f migpt index.html bundle.js sea-prep.blob",
+    "prebuild": "npm run clean",
+    "build": "sh pack.sh",
+    "postbuild": "rm bundle.js index.html sea-prep.blob"
+  },
+  "dependencies": {
+    "web-gui-backend": "*"
+  },
+  "devDependencies": {
+    "postject": "^1.0.0-alpha.6"
+  }
+}

@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MiGPT 控制面板</title>
+  </head>
+  <body>
+    <h1>MiGPT 控制面板</h1>
+
+    <p>欢迎使用 MiGPT 控制面板。</p>
+
+    <p>当前 MiGPT 是否运行：<span id="mg-status">正在查询……</span></p>
+
+    <form>
+      <fieldset>
+        <legend>机器人</legend>
+        <div>
+          <label>名称：<input type="text" name="bot.name" /></label>
+        </div>
+        <div>
+          <label>人设：<textarea name="bot.profile"></textarea></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>主人（我自己）</legend>
+        <div>
+          <label>名称：<input type="text" name="master.name" /></label>
+        </div>
+        <div>
+          <label>人设：<textarea name="master.profile"></textarea></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>会话群</legend>
+        <div>
+          <label>名称：<input type="text" name="room.name" /></label>
+        </div>
+        <div>
+          <label>简介：<textarea name="room.description"></textarea></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>speaker</legend>
+        <div>
+          <label
+            >小米 ID（注意：不是手机号或邮箱）：<input
+              type="text"
+              name="speaker.userId"
+              required
+          /></label>
+        </div>
+        <div>
+          <label
+            >账户密码：<input name="speaker.password" type="password" required
+          /></label>
+        </div>
+        <div>
+          <label
+            >小爱音箱 ID 或名称：<input name="speaker.did" required />
+          </label>
+        </div>
+        <div>
+          <label
+            >小爱音箱 TTS 指令（可在此查询）：<input
+              name="speaker.ttsCommand"
+              required
+            />
+          </label>
+        </div>
+        <div>
+          <label
+            >小爱音箱唤醒指令（可在此查询）：<input
+              name="speaker.wakeUpCommand"
+              required
+            />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>OpenAI</legend>
+        <div>
+          <label
+            >OpenAI API Key：<input
+              type="text"
+              name="env.OPENAI_API_KEY"
+              required
+          /></label>
+        </div>
+
+        <div>
+          <label
+            >OpenAI Model：<input type="text" name="env.OPENAI_MODEL" required
+          /></label>
+        </div>
+
+        <div>
+          <label
+            >OpenAI Base URL：<input
+              type="text"
+              name="env.OPENAI_BASE_URL"
+              required
+          /></label>
+        </div>
+
+        <div>
+          <label
+            >Azure OpenAI API Key：<input
+              type="text"
+              name="env.AZURE_OPENAI_API_KEY"
+          /></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>操作</legend>
+        <button type="submit">启动 MiGPT</button>
+        <button type="button">停止 MiGPT</button>
+      </fieldset>
+    </form>
+
+    <script>
+      ;(function () {
+        let isRunning = null
+
+        //  查询当前运行状态
+        fetch('/api/status')
+          .then((res) => {
+            if (res.ok) {
+              return res.json()
+            }
+            throw new Error('请求失败')
+          })
+          .then((data) => {
+            isRunning = data.running
+            document.getElementById('mg-status').innerText = isRunning
+              ? '正在运行'
+              : '未运行'
+          })
+          .catch((err) => {
+            console.error(err)
+            document.getElementById('mg-status').innerText = '查询失败'
+          })
+
+        // 启动 MiGPT
+        document.querySelector('form').addEventListener('submit', (e) => {
+          e.preventDefault()
+          console.log(Object.fromEntries(new FormData(e.target)))
+          fetch('/api/start', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              env: {
+                OPENAI_API_KEY: e.target['env.OPENAI_API_KEY'].value,
+                OPENAI_MODEL: e.target['env.OPENAI_MODEL'].value,
+                OPENAI_BASE_URL: e.target['env.OPENAI_BASE_URL'].value,
+                AZURE_OPENAI_API_KEY:
+                  e.target['env.AZURE_OPENAI_API_KEY'].value,
+              },
+              config: {
+                bot: {
+                  name: e.target['bot.name'].value,
+                  profile: e.target['bot.profile'].value,
+                },
+                master: {
+                  name: e.target['master.name'].value,
+                  profile: e.target['master.profile'].value,
+                },
+                room: {
+                  name: e.target['room.name'].value,
+                  description: e.target['room.description'].value,
+                },
+                speaker: {
+                  userId: e.target['speaker.userId'].value,
+                  password: e.target['speaker.password'].value,
+                  did: e.target['speaker.did'].value,
+                  ttsCommand: e.target['speaker.ttsCommand'].value,
+                  wakeUpCommand: e.target['speaker.wakeUpCommand'].value,
+                },
+              },
+            }),
+          })
+            .then((res) => {
+              if (res.ok) {
+                return res.json()
+              }
+              throw new Error('请求失败')
+            })
+            .then((data) => {
+              if (data.success) {
+                isRunning = true
+                document.getElementById('mg-status').innerText = '正在运行'
+              } else {
+                alert('启动失败')
+              }
+            })
+            .catch((err) => {
+              console.error(err)
+              alert('启动失败')
+            })
+        })
+
+        // 停止 MiGPT
+        document
+          .querySelector('form button[type="button"]')
+          .addEventListener('click', () => {
+            fetch('/api/stop', {
+              method: 'POST',
+            })
+              .then((res) => {
+                if (res.ok) {
+                  return res.json()
+                }
+                throw new Error('请求失败')
+              })
+              .then((data) => {
+                if (data.success) {
+                  isRunning = false
+                  document.getElementById('mg-status').innerText = '未运行'
+                } else {
+                  alert('停止失败')
+                }
+              })
+              .catch((err) => {
+                console.error(err)
+                alert('停止失败')
+              })
+          })
+      })()
+    </script>
+  </body>
+</html>
